@@ -7,50 +7,45 @@ import taskRoutes from "./routes/taskRoutes.js";
 
 dotenv.config();
 
-// Fix DNS issues (good for MongoDB Atlas)
-dns.setServers(["8.8.8.8", "1.1.1.1"]);
+// Only needed on some local networks/ISPs for Atlas SRV lookups.
+// Render sets RENDER=true, so this is skipped in production.
+if (!process.env.RENDER) {
+  dns.setServers(["8.8.8.8", "1.1.1.1"]);
+}
 
-const app = express();
+const { MONGO_URI, CLIENT_URL, PORT = 5000 } = process.env;
 
-// ✅ CORS (allow all for now, restrict later)
-app.use(
-  cors({
-    origin: "https://task-manager-m41d.vercel.app",
-    methods: ["GET", "POST", "PUT", "DELETE"],
-    credentials: true,
-  }),
-);
-
-// Middleware
-app.use(express.json());
-
-// Test route
-app.get("/", (req, res) => {
-  res.send("API is running...");
-});
-
-// MongoDB connection
-const mongoURI = process.env.MONGO_URI;
-
-if (!mongoURI) {
-  console.error("❌ MONGO_URI is not set in environment variables");
+if (!MONGO_URI) {
+  console.error("❌ MONGO_URI is not set");
   process.exit(1);
 }
 
+const app = express();
+
+const allowedOrigins = [
+  "http://localhost:5173",
+  CLIENT_URL || "https://task-manager-khaki-phi-62.vercel.app",
+];
+
+app.use(
+  cors({
+    origin: allowedOrigins,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+  }),
+);
+
+app.use(express.json());
+
+app.get("/", (req, res) => res.send("API is running..."));
+app.use("/api/tasks", taskRoutes);
+
 mongoose
-  .connect(mongoURI)
-  .then(() => console.log("✅ MongoDB connected"))
+  .connect(MONGO_URI)
+  .then(() => {
+    console.log("✅ MongoDB connected");
+    app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+  })
   .catch((err) => {
     console.error("❌ MongoDB connection error:", err);
     process.exit(1);
   });
-
-// Routes
-app.use("/api/tasks", taskRoutes);
-
-// ✅ IMPORTANT: Use dynamic PORT for deployment
-const PORT = process.env.PORT || 5000;
-
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-});
