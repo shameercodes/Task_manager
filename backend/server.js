@@ -22,14 +22,29 @@ if (!MONGO_URI) {
 
 const app = express();
 
+// Exact origins that are allowed
 const allowedOrigins = [
   "http://localhost:5173",
-  CLIENT_URL || "https://task-manager-khaki-phi-62.vercel.app",
-];
+  "https://task-manager-khaki-phi-62.vercel.app",
+  CLIENT_URL,
+].filter(Boolean);
+
+// Matches your own Vercel preview/deployment URLs (your account only)
+const vercelPreview =
+  /^https:\/\/task-manager-[a-z0-9-]+-shameer125s-projects\.vercel\.app$/;
 
 app.use(
   cors({
-    origin: allowedOrigins,
+    origin: (origin, callback) => {
+      if (
+        !origin ||
+        allowedOrigins.includes(origin) ||
+        vercelPreview.test(origin)
+      ) {
+        return callback(null, true);
+      }
+      callback(new Error("Not allowed by CORS"));
+    },
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
   }),
 );
