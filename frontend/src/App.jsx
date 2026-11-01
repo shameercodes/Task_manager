@@ -1,15 +1,10 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 
-const API_BASE =
-  (import.meta.env.VITE_API_URL || "")
-    .replace(/^(?!https?:\/\/)/, "https://")
-    .replace(/\/$/, "") ||
-  (typeof window !== "undefined"
-    ? window.location.origin
-    : "http://localhost:3000");
-
-const API = `${API_BASE}/api/tasks`;
+// ✅ PRODUCTION + LOCAL SAFE API URL
+const API = import.meta.env.VITE_API_URL
+  ? `${import.meta.env.VITE_API_URL}/api/tasks`
+  : "http://localhost:5000/api/tasks";
 
 function App() {
   const [tasks, setTasks] = useState([]);
